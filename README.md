@@ -35,16 +35,22 @@ registered globally and can take up to an hour to show up).
 
 `OBFUSCATOR_BASE_URL` is already set to your deployed obfuscator.
 
-## 3. Register the command and run
+## 3. Run
+
+The bot registers `/obfuscate` automatically every time it starts — no
+separate command needed. Just:
 
 ```bash
 npm install
-npm run deploy-commands   # only needed once, or after changing the command
 npm start
 ```
 
-Try `/obfuscate` in Discord — attach a `.lua` file or use the `code` option.
-Default preset is **Strong**.
+If `DISCORD_GUILD_ID` is set, the command appears in that server instantly.
+Left blank, it registers globally and can take up to an hour to show up
+the first time.
+
+(`npm run deploy-commands` still exists if you ever want to register the
+command without starting the bot.)
 
 ## Deploying (Render, free tier)
 
@@ -60,8 +66,8 @@ treats it as a Web Service.
 4. Build command: `npm install`
 5. Start command: `npm start`
 6. Add the environment variables from `.env` in Render's dashboard.
-7. Deploy. Run `npm run deploy-commands` once locally (with the same `.env`
-   values) so the `/obfuscate` command shows up in Discord.
+7. Deploy. The `/obfuscate` command registers itself automatically on boot —
+   check the deploy logs for "registered to guild" or "registered globally".
 
 **Important — free tier spin-down:** Render puts free web services to sleep
 after about 15 minutes with no HTTP traffic, which will disconnect the bot.

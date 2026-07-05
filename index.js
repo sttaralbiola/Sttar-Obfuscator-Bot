@@ -5,6 +5,9 @@ const {
   GatewayIntentBits,
   AttachmentBuilder,
   EmbedBuilder,
+  REST,
+  Routes,
+  SlashCommandBuilder,
 } = require("discord.js");
 
 const BASE_URL = (process.env.OBFUSCATOR_BASE_URL || "").replace(/\/$/, "");
@@ -13,6 +16,51 @@ const DEFAULT_PRESET = "Strong";
 if (!BASE_URL) {
   console.error("OBFUSCATOR_BASE_URL is not set in .env");
   process.exit(1);
+}
+
+// ---- register the /obfuscate command on every boot ----
+// Registering the same command again just overwrites it, so it's safe to
+// run this on every startup instead of requiring a separate manual step.
+async function registerCommands() {
+  const commands = [
+    new SlashCommandBuilder()
+      .setName("obfuscate")
+      .setDescription("Obfuscate a Lua script using Sttar Obfuscator")
+      .addAttachmentOption((opt) =>
+        opt.setName("file").setDescription("A .lua file to obfuscate").setRequired(false)
+      )
+      .addStringOption((opt) =>
+        opt.setName("code").setDescription("Paste Lua code directly instead of a file").setRequired(false)
+      )
+      .addStringOption((opt) =>
+        opt
+          .setName("preset")
+          .setDescription("Obfuscation strength (default: Strong)")
+          .setRequired(false)
+          .addChoices(
+            { name: "Minify", value: "Minify" },
+            { name: "Weak", value: "Weak" },
+            { name: "Medium", value: "Medium" },
+            { name: "Strong", value: "Strong" }
+          )
+      ),
+  ].map((c) => c.toJSON());
+
+  const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN);
+  const clientId = process.env.DISCORD_CLIENT_ID;
+  const guildId = process.env.DISCORD_GUILD_ID;
+
+  try {
+    if (guildId) {
+      await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: commands });
+      console.log(`/obfuscate registered to guild ${guildId} (instant).`);
+    } else {
+      await rest.put(Routes.applicationCommands(clientId), { body: commands });
+      console.log("/obfuscate registered globally (can take up to 1 hour to appear).");
+    }
+  } catch (err) {
+    console.error("Failed to register /obfuscate command:", err.message);
+  }
 }
 
 // ---- tiny HTTP server ----
@@ -120,8 +168,8 @@ client.on("interactionCreate", async (interaction) => {
   }
 });
 
-client.once("ready", () => {
+client.once("clientReady", () => {
   console.log(`Logged in as ${client.user.tag}`);
 });
 
-client.login(process.env.DISCORD_TOKEN);
+registerCommands().then(() => client.login(process.env.DISCORD_TOKEN));
